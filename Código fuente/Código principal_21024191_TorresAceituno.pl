@@ -14,7 +14,7 @@
 %    A: un número entero (representa el año)
 %
 % Predicados
-%    fecha(D, M, A, FOut). aridad = 4 
+%    fecha(D, M, A, FOut).                                                  aridad = 4 
 %
 % Clausulas
 % Hechos
@@ -64,7 +64,7 @@ modificarAnnoF(F1, A, F2):-
 %    Date: Fecha (Fecha de creación)
 %
 % Predicados
-%    paradigmaDocs(Name, Date, POut). aridad = 3
+%    paradigmaDocs(Name, Date, POut).                                       aridad = 3
 %     
 % Clausulas
 % Constructor/Pertinencia/Modificadores
@@ -89,7 +89,7 @@ selectDocumentosP([_, _, _, _, ListaDocs], ListaDocs).
 %    Date: Fecha (Fecha de creación)
 %
 % Predicados
-%    usuario(Username, Password, Date, UOut) aridad = 4
+%    usuario(Username, Password, Date, UOut)                                aridad = 4
 %     
 % Clausulas
 % Constructor/Pertinencia/Selector/Modificadores
@@ -101,12 +101,20 @@ usuario(Username, Password, Date, User):-
 %-------------------------------------------------------------------------------%
 % Otros predicados (que ayudan al funcionamiento de los predicados principales) %
 %-------------------------------------------------------------------------------%
+miembro(X, [X|_]):-!.
+    miembro(X, [_|T]) :- miembro(X, T).
 
 primero([H|_], H).
 sacarNombres([], []):-!.
 sacarNombres([H|T], [H1|T2]):-
     primero(H, H1),
     sacarNombres(T, T2).
+
+primeroAndSegundo([Name, Pass|_], [Name, Pass]).
+sacarNombresAndContrasenas([], []):-!.
+sacarNombresAndContrasenas([H|T], [H1|T2]):-
+    primeroAndSegundo(H, H1),
+    sacarNombresAndContrasenas(T, T2).
 
 %---------------------------------------------------%
 % Código Principal Plataforma que emula Google Docs %
@@ -117,8 +125,8 @@ sacarNombres([H|T], [H1|T2]):-
 %   Password: String.
 %   
 % Predicados:
-%   paradigmaDocsRegister(PD1, Fecha, Username, Password, PD2). aridad = 5
-%
+%   paradigmaDocsRegister(PD1, Fecha, Username, Password, PD2).             aridad = 5
+%   paradigmaDocsLogin(PD1, Username, Password, PD2).                       aridad = 4
 %
 
 
@@ -138,7 +146,7 @@ paradigmaDocsRegister(PD1, Fecha, Username, Password, PD2):-
     selectDocumentosP(PD1, ListaDocs),
     usuario(Username, Password, Fecha, User1),
     sacarNombres(ListaReg, Nombres),
-    \+member(Username, Nombres),
+    \+miembro(Username, Nombres),
     append(ListaReg, [User1], ListaRegistroNueva),
     PD2 = [NombreP, FechaP, ListaRegistroNueva, UserActivo, ListaDocs].
 
@@ -147,8 +155,20 @@ paradigmaDocsRegister(PD1, Fecha, Username, Password, PD2):-
 % paradigmaDocsLogin %
 %--------------------%
 /*
+Predicado que autentica un usuario con su bombre de usuario y contraseña. Esto lo hace al verificar
+que ese usuario que se está iniciando sesión, se encuentre anteriormente registrado en la plataforma.
+Si se cumple esa condición se almacena en la pataforma como usuario activo y, caso contrario, se devuelve false.
 */
-
+paradigmaDocsLogin(PD1, Username, Password, PD2):-
+    string(Username),
+    string(Password),
+    selectNombreP(PD1, NombreP),
+    selectFechaP(PD1, FechaP),
+    selectListaRegP(PD1, ListaReg),
+    selectDocumentosP(PD1, ListaDocs),
+    sacarNombresAndContrasenas(ListaReg, ListaNyC),
+    miembro([Username, Password], ListaNyC),
+    PD2 = [NombreP, FechaP, ListaReg, [Username], ListaDocs].
 
 
 
@@ -191,12 +211,12 @@ paradigmaDocsRegister(PD1, Fecha, Username, Password, PD2):-
 %       fecha(15, 12, 2021, F1), paradigmaDocs("google docs", F1, PD1), paradigmaDocsRegister(PD1, F1, "Griyitoxc", "paradigmaCLAVE", PD2).
 %
 % paradigmaDocsLogin
-%
-%
-%
-%
-%
-%
+%   Se Logea el usuario "vflores" con la contraseña "hola123"
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5).
+%   Se Logea incorrectamente "vflores" con una contraseña errada "hola12"
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola12", PD5).
+%   Se Logea incorrectamente un usuario que no existe
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "Griyitoxc", "PASSDEGRIyito", PD5).
 %
 % paradigmaDocsCreate
 %
