@@ -115,21 +115,22 @@ usuario(Username, Password, Date, User):-
 %
 % Clausulas
 % Constructor/Pertinencia/Selector
-documento(Nombre, Fecha, Contenido, Doc):-
-    string(Nombre), esFecha(Fecha), string(Contenido),
-    Doc = [Nombre, Fecha, "", [[Contenido, Fecha, 0]], []].
+documento(Nombre, Autor, Fecha, Contenido, Doc):-
+    string(Nombre), string(Autor), esFecha(Fecha), string(Contenido),
+    Doc = [Nombre, Autor, Fecha, "", [[Contenido, Fecha, 0]], []].
 
 % Selectores
-selectNombreD([NombreD, _, _, _, _], NombreD).
-selectFechaD([_, FechaD, _, _, _], FechaD).
-selectIdD([_, _, IdD, _, _], IdD).
-selectVersiones([_, _, _, ListaVer, _], ListaVer).
-selectAccesos([_, _, _, _, ListaAccesos], ListaAccesos).
+selectNombreD([NombreD, _, _, _, _, _], NombreD).
+selectAutorD([_, AutorD, _, _, _, _], AutorD).
+selectFechaD([_, _, FechaD, _, _, _], FechaD).
+selectIdD([_, _, _, IdD, _, _], IdD).
+selectVersiones([_, _, _, _, ListaVer, _], ListaVer).
+selectAccesos([_, _, _, _, _, ListaAccesos], ListaAccesos).
 
 % Modificadores
 setIdDoc(Doc1, Id, Doc2):-
-    selectNombreD(Doc1, NombreDoc), selectFechaD(Doc1, FechaDoc), selectVersiones(Doc1, VerDoc), selectAccesos(Doc1, AccDoc),
-    Doc2 = [NombreDoc, FechaDoc, Id, VerDoc, AccDoc].
+    selectNombreD(Doc1, NombreDoc), selectAutorD(Doc1, NombreAutorD), selectFechaD(Doc1, FechaDoc), selectVersiones(Doc1, VerDoc), selectAccesos(Doc1, AccDoc),
+    Doc2 = [NombreDoc, NombreAutorD, FechaDoc, Id, VerDoc, AccDoc].
 
 %-------------------------------------------------------------------------------%
 % Otros predicados (que ayudan al funcionamiento de los predicados principales) %
@@ -214,15 +215,20 @@ paradigmaDocsLogin(PD1, Username, Password, PD2):-
 Predicado que 
 */
 paradigmaDocsCreate(PD1, Fecha, Nombre, Contenido, PD2):-
+    selectNombreP(PD1, NombreP),
+    selectFechaP(PD1, FechaP),
+    selectListaRegP(PD1, ListaReg),
     selectUserActivoP(PD1, UserActivo),
+    selectDocumentosP(PD1, ListaDocs),
     \+UserActivo==[],
     selectNombreUser(UserActivo, NombreUserActivo),
-    documento(Nombre, Fecha, Contenido, DocumentoCreado),
+    documento(Nombre, NombreUserActivo, Fecha, Contenido, DocumentoCreado),
     selectDocumentosP(PD1, ListaDocs),
     length(ListaDocs, NumId),
-    setIdDoc(DocumentoCreado, NumId, DocumentoActualizado).
-
-
+    setIdDoc(DocumentoCreado, NumId, DocumentoActualizado),
+    append(ListaDocs, [DocumentoActualizado], ListaDocsNueva),
+    PD2 = [NombreP, FechaP, ListaReg, [], ListaDocsNueva].
+% fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD7). 
 
 
 
@@ -271,12 +277,12 @@ paradigmaDocsCreate(PD1, Fecha, Nombre, Contenido, PD2):-
 %       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "Griyitoxc", "PASSDEGRIyito", PD5).
 %
 % paradigmaDocsCreate
-%
-%
-%
-%
-%
-%
+%   Se crea un documento con autor "vflores" (usuario logeado) y se guarda en la plataforma
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6).
+%   No se crea un documento ya que el usuario no está logeado anteriormente
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6).
+%   Se crean dos documentos correctamente con sus respectivos login
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8).
 %
 % paradigmaDocsShare
 %
