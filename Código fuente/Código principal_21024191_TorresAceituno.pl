@@ -132,6 +132,32 @@ setIdDoc(Doc1, Id, Doc2):-
     selectNombreD(Doc1, NombreDoc), selectAutorD(Doc1, NombreAutorD), selectFechaD(Doc1, FechaDoc), selectVersiones(Doc1, VerDoc), selectAccesos(Doc1, AccDoc),
     Doc2 = [NombreDoc, NombreAutorD, FechaDoc, Id, VerDoc, AccDoc].
 
+%-------------%
+% TDA Accesos %
+%-------------%
+%
+% Dominios
+%    Nombre: String (Nombre del documento)
+%    Fecha: Fecha (Fecha de creación)
+%
+% Predicados
+%    documento(Nombre, Fecha, Contenido, DOut)                              aridad = 4
+%
+% Clausulas
+% Función que aporta al constructor para cambiar formato de manera recursiva
+arregloAccesos([], []):-!.
+arregloAccesos([H|T], [[H]|T1]):-
+    arregloAccesos(T, T1).
+
+% Constructor
+crearAccesos(Permisos, Usuarios, ListaAccesos):-
+    verificarPermisos(Permisos),
+    is_list(Permisos),
+    is_list(Usuarios),
+    arregloAccesos(Usuarios, UsuariosNew),
+    maplist(append(Permisos), UsuariosNew, ListaAccesos).
+
+
 %-------------------------------------------------------------------------------%
 % Otros predicados (que ayudan al funcionamiento de los predicados principales) %
 %-------------------------------------------------------------------------------%
@@ -150,6 +176,17 @@ sacarNombresAndContrasenas([H|T], [H1|T2]):-
     primeroAndSegundo(H, H1),
     sacarNombresAndContrasenas(T, T2).
 
+verificarPermisos([]):-!.
+verificarPermisos([H|T]):-
+    (H == "W"; H == "C"; H == "S"; H == "R"), !,
+    verificarPermisos(T).
+
+eliminarDuplicados([], []):-!.
+eliminarDuplicados([H | T], Lista):-
+    member(H, T), !,
+    eliminarDuplicados(T, Lista).
+eliminarDuplicados([H | T], [H | Lista]):-
+    eliminarDuplicados(T, Lista).
 %---------------------------------------------------%
 % Código Principal Plataforma que emula Google Docs %
 %---------------------------------------------------%
@@ -212,7 +249,9 @@ paradigmaDocsLogin(PD1, Username, Password, PD2):-
 % paradigmaDocsCreate %
 %---------------------%
 /*
-Predicado que 
+Predicado que crea un documento con la autoría del usuario logeado. Si el usuario no está logeado correctamente
+el predicado falla. Una vez creado el documento nuevo con el contenido, fecha de creación y título, se inserta a la plataforma
+con su respectivo ID verificador.
 */
 paradigmaDocsCreate(PD1, Fecha, Nombre, Contenido, PD2):-
     selectNombreP(PD1, NombreP),
@@ -228,10 +267,28 @@ paradigmaDocsCreate(PD1, Fecha, Nombre, Contenido, PD2):-
     setIdDoc(DocumentoCreado, NumId, DocumentoActualizado),
     append(ListaDocs, [DocumentoActualizado], ListaDocsNueva),
     PD2 = [NombreP, FechaP, ListaReg, [], ListaDocsNueva].
-% fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD7). 
 
 
-
+%---------------------%
+% paradigmaDocsShare %
+%---------------------%
+/*
+Predicado que
+*/
+paradigmaDocsShare(PD1, DocumentId, ListaPermisos, ListaUsernamesPermitidos, PD2):-
+    \+ListaPermisos==[],
+    \+ListaUsernamesPermitidos==[],
+    verificarPermisos(ListaPermisos),
+    eliminarDuplicados(ListaPermisos, ListaPermisos1),
+    eliminarDuplicados(ListaUsernamesPermitidos, ListaUsernamesPermitidos1),
+    selectNombreP(PD1, NombreP),
+    selectFechaP(PD1, FechaP),
+    selectListaRegP(PD1, ListaReg),
+    selectUserActivoP(PD1, UserActivo),
+    selectDocumentosP(PD1, ListaDocs),
+    \+UserActivo==[],
+    crearAccesos(ListaPermisos1, ListaUsernamesPermitidos1, ListaAccesosLista),
+    PD2 = ListaAccesosLista.
 
 
 
