@@ -77,13 +77,6 @@ selectUserActivoP([_, _, _, UserActivo, _], UserActivo).
 selectDocumentosP([_, _, _, _, ListaDocs], ListaDocs).
 selectNombreUser([User], User).
 
-% Modificadores 
-setListaVacia(PD1, PD2):-
-    selectNombreP(PD1, Nombre1),
-    selectFechaP(PD1, Fecha1),
-    selectListaRegP(PD1, Registro1),
-    selectDocumentosP(PD1, Documento1),
-    PD2 = [Nombre1, Fecha1, Registro1,[], Documento1].
 
 %-------------%
 % TDA Usuario %
@@ -129,8 +122,15 @@ selectAccesos([_, _, _, _, _, ListaAccesos], ListaAccesos).
 
 % Modificadores
 setIdDoc(Doc1, Id, Doc2):-
-    selectNombreD(Doc1, NombreDoc), selectAutorD(Doc1, NombreAutorD), selectFechaD(Doc1, FechaDoc), selectVersiones(Doc1, VerDoc), selectAccesos(Doc1, AccDoc),
-    Doc2 = [NombreDoc, NombreAutorD, FechaDoc, Id, VerDoc, AccDoc].
+    selectNombreD(Doc1, NombreDoc), selectAutorD(Doc1, NombreAutorDoc), selectFechaD(Doc1, FechaDoc), selectVersiones(Doc1, VerDoc), selectAccesos(Doc1, AccDoc),
+    Doc2 = [NombreDoc, NombreAutorDoc, FechaDoc, Id, VerDoc, AccDoc].
+
+setAccesos(Doc1, ListaAccesos, Doc2):-
+    selectNombreD(Doc1, NombreDoc), selectAutorD(Doc1, NombreAutorDoc), selectFechaD(Doc1, FechaDoc), selectIdD(Doc1, IdDoc), selectVersiones(Doc1, VerDoc), selectAccesos(Doc1, AccDoc),
+    append(ListaAccesos, AccDoc, AccDoc1),
+    Doc2 = [NombreDoc, NombreAutorDoc, FechaDoc, IdDoc, VerDoc, AccDoc1].
+
+
 
 %-------------%
 % TDA Accesos %
@@ -155,7 +155,8 @@ crearAccesos(Permisos, Usuarios, ListaAccesos):-
     is_list(Permisos),
     is_list(Usuarios),
     arregloAccesos(Usuarios, UsuariosNew),
-    maplist(append(Permisos), UsuariosNew, ListaAccesos).
+    maplist(append(Permisos), UsuariosNew, ListaAcc),
+    maplist(reverse, ListaAcc, ListaAccesos).
 
 
 %-------------------------------------------------------------------------------%
@@ -181,12 +182,28 @@ verificarPermisos([H|T]):-
     (H == "W"; H == "C"; H == "S"; H == "R"), !,
     verificarPermisos(T).
 
+verificarRegistrados([], _):-!.
+verificarRegistrados([H|T], Lista):-
+    miembro(H, Lista),
+    verificarRegistrados(T, Lista).
+
 eliminarDuplicados([], []):-!.
 eliminarDuplicados([H | T], Lista):-
     member(H, T), !,
     eliminarDuplicados(T, Lista).
 eliminarDuplicados([H | T], [H | Lista]):-
     eliminarDuplicados(T, Lista).
+
+myNth0(0, [H|_], H):-!.
+myNth0(Indice, [_|T], E):-
+    Indice1 is Indice - 1,
+    myNth0(Indice1, T, E).
+
+reemplazar([_|T], 0, X, [X|T]):-!.
+reemplazar([H|T], I, X, [H|R]) :-
+    I > 0,
+    I1 is I - 1,
+    reemplazar(T, I1, X, R).
 %---------------------------------------------------%
 % Código Principal Plataforma que emula Google Docs %
 %---------------------------------------------------%
@@ -273,7 +290,8 @@ paradigmaDocsCreate(PD1, Fecha, Nombre, Contenido, PD2):-
 % paradigmaDocsShare %
 %---------------------%
 /*
-Predicado que
+Predicado que permite a un usuario logeado dar accesos en un documento específico por ID verificando que estos sean
+"C" = comentarios, "W" = escritura, "S" = compartir, "R" = lectura.
 */
 paradigmaDocsShare(PD1, DocumentId, ListaPermisos, ListaUsernamesPermitidos, PD2):-
     \+ListaPermisos==[],
@@ -284,11 +302,16 @@ paradigmaDocsShare(PD1, DocumentId, ListaPermisos, ListaUsernamesPermitidos, PD2
     selectNombreP(PD1, NombreP),
     selectFechaP(PD1, FechaP),
     selectListaRegP(PD1, ListaReg),
+    sacarNombres(ListaReg, NombresRegistrados),
+    verificarRegistrados(ListaUsernamesPermitidos, NombresRegistrados),
     selectUserActivoP(PD1, UserActivo),
     selectDocumentosP(PD1, ListaDocs),
     \+UserActivo==[],
     crearAccesos(ListaPermisos1, ListaUsernamesPermitidos1, ListaAccesosLista),
-    PD2 = ListaAccesosLista.
+    myNth0(DocumentId, ListaDocs, DocById),
+    setAccesos(DocById, ListaAccesosLista, DocConAccesos),
+    reemplazar(ListaDocs, DocumentId, DocConAccesos, ListaDocsNueva),
+    PD2 = [NombreP, FechaP, ListaReg, [], ListaDocsNueva].
 
 
 
@@ -342,12 +365,12 @@ paradigmaDocsShare(PD1, DocumentId, ListaPermisos, ListaUsernamesPermitidos, PD2
 %       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8).
 %
 % paradigmaDocsShare
-%
-%
-%
-%
-%
-%
+%   Se comparten tres accesos ["W", "R", "C"] a dos usuarios registrados ["vflores", "alopez"] en el documento 0
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C"], ["vflores", "alopez"], PD10).
+%   Se comparten tres accesos ["W", "R", "C"] a dos usuarios pero uno sin registrar ["vflores", "Griyitoxc"] y falla
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C"], ["vflores", "Grillitoxc"], PD10)
+%   Se comparten accesos incorrectos ["A", "R", "C"] a dos usuarios correctamente registrados ["vflores", "alopez"]
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["A", "R", "C"], ["vflores", "alopez"], PD10).
 %
 % paradigmaDocsAdd
 %
