@@ -126,9 +126,8 @@ setIdDoc(Doc1, Id, Doc2):-
     Doc2 = [NombreDoc, NombreAutorDoc, FechaDoc, Id, VerDoc, AccDoc].
 
 setAccesos(Doc1, ListaAccesos, Doc2):-
-    selectNombreD(Doc1, NombreDoc), selectAutorD(Doc1, NombreAutorDoc), selectFechaD(Doc1, FechaDoc), selectIdD(Doc1, IdDoc), selectVersiones(Doc1, VerDoc), selectAccesos(Doc1, AccDoc),
-    append(ListaAccesos, AccDoc, AccDoc1),
-    Doc2 = [NombreDoc, NombreAutorDoc, FechaDoc, IdDoc, VerDoc, AccDoc1].
+    selectNombreD(Doc1, NombreDoc), selectAutorD(Doc1, NombreAutorDoc), selectFechaD(Doc1, FechaDoc), selectIdD(Doc1, IdDoc), selectVersiones(Doc1, VerDoc),
+    Doc2 = [NombreDoc, NombreAutorDoc, FechaDoc, IdDoc, VerDoc, ListaAccesos].
 
 
 
@@ -158,6 +157,8 @@ crearAccesos(Permisos, Usuarios, ListaAccesos):-
     maplist(append(Permisos), UsuariosNew, ListaAcc),
     maplist(reverse, ListaAcc, ListaAccesos).
 
+% Selectores
+selectNombreAcceso([Name|_], Name).
 
 %-------------------------------------------------------------------------------%
 % Otros predicados (que ayudan al funcionamiento de los predicados principales) %
@@ -204,6 +205,38 @@ reemplazar([H|T], I, X, [H|R]) :-
     I > 0,
     I1 is I - 1,
     reemplazar(T, I1, X, R).
+
+seleccionarUserPermiso(_, [], []):-!.
+seleccionarUserPermiso(User, [Acc|AccT], Acc):-
+    miembro(User, Acc),
+    seleccionarUserPermiso(User, AccT, _), !.
+seleccionarUserPermiso(User, [_|AccT], UsuarioConPermisos):-
+    seleccionarUserPermiso(User, AccT, UsuarioConPermisos), !.
+
+tienePermisoS(User):-
+    miembro("S", User).
+
+tienePermisoW(User):-
+    miembro("W", User).
+
+tienePermisoR(User):-
+    miembro("R", User).
+
+tienePermisoC(User):-
+    miembro("C", User).
+
+actualizarAccesos([], Acceso, [Acceso]).
+actualizarAccesos([PrimerAcceso|SiguientesAccesos], Acceso, [Acceso|SiguientesAccesos]):-
+    selectNombreAcceso(PrimerAcceso, Nombre),
+    selectNombreAcceso(Acceso, Nombre), !.
+actualizarAccesos([PrimerAcceso|SiguientesAccesos], Acceso, [PrimerAcceso|NuevosAccesos]):-
+    actualizarAccesos(SiguientesAccesos, Acceso, NuevosAccesos).
+
+recorreAccesos(ListaAccesos, [], ListaAccesos):- !.
+recorreAccesos(ListaAccesos, [H|T], ListaRadom):-
+    actualizarAccesos(ListaAccesos, H, ListaSalida),
+    recorreAccesos(ListaSalida, T, ListaRadom).
+    
 %---------------------------------------------------%
 % Código Principal Plataforma que emula Google Docs %
 %---------------------------------------------------%
@@ -290,33 +323,55 @@ paradigmaDocsCreate(PD1, Fecha, Nombre, Contenido, PD2):-
 % paradigmaDocsShare %
 %---------------------%
 /*
-Predicado que permite a un usuario logeado dar accesos en un documento específico por ID verificando que estos sean
-"C" = comentarios, "W" = escritura, "S" = compartir, "R" = lectura.
+Predicado que permite a un usuario logeado dar accesos en un documento específico por ID.
+Este predicado tiene varias verificaciones (ejemplificadas). Entre ellas tenemos:
+1. Si el usuario es dueño del documento seleccionado, este puede dar los permisos.
+2. Si el usuario tiene permisos de compartir "S", puede dar permisos.
+3. Los usuarios a los cuales se asignan permisos, deben estar registrados en la plataforma.
+4. Los usuarios ingresados no pueden estar duplicados (se eliminan duplicados).
+5. Los permisos ingresados no pueden estar duplicados (se eliminan duplicados).
+6. El usuario debe estar correctamente logeado.
+7. Los permisos ingresados deben ser los correctos ("C" = comentarios, "W" = escritura, "S" = compartir, "R" = lectura).
+8. Los permisos son actualizables, esto quiere decir, que si un usuario ya tiene permisos otorgados anteriormente, al ingresar
+nuevos permisos, estos se sobreescriben dentro de los permisos del usuario.
 */
 paradigmaDocsShare(PD1, DocumentId, ListaPermisos, ListaUsernamesPermitidos, PD2):-
+    % Verificaciones
     \+ListaPermisos==[],
     \+ListaUsernamesPermitidos==[],
     verificarPermisos(ListaPermisos),
     eliminarDuplicados(ListaPermisos, ListaPermisos1),
     eliminarDuplicados(ListaUsernamesPermitidos, ListaUsernamesPermitidos1),
+    % Getting info paradigmadocs
     selectNombreP(PD1, NombreP),
     selectFechaP(PD1, FechaP),
     selectListaRegP(PD1, ListaReg),
     sacarNombres(ListaReg, NombresRegistrados),
+    % Verificar que los users nuevos estén registrados en la plataforma
     verificarRegistrados(ListaUsernamesPermitidos, NombresRegistrados),
+    % Select user logeado y verificar que no sea vacío
     selectUserActivoP(PD1, UserActivo),
-    selectDocumentosP(PD1, ListaDocs),
     \+UserActivo==[],
+    % Select lista docs
+    selectDocumentosP(PD1, ListaDocs),
+    selectNombreUser(UserActivo, UserLogeado),
+    % Crear accesos
     crearAccesos(ListaPermisos1, ListaUsernamesPermitidos1, ListaAccesosLista),
+    % Selecciono el documento por ID
     myNth0(DocumentId, ListaDocs, DocById),
-    setAccesos(DocById, ListaAccesosLista, DocConAccesos),
+    % Saco sus accesos anteriores
+    selectAccesos(DocById, AccesosDoc),
+    % Selecciono autor
+    selectAutorD(DocById, AutorDoc),
+    % Selecciono si es que el user está logeado
+    seleccionarUserPermiso(UserLogeado, AccesosDoc, UserDesdeAcceso),
+    % Verificación si el usuario logeado es Autor del doc o tiene permisos de compartir "S"
+    (tienePermisoS(UserDesdeAcceso), !; UserLogeado=AutorDoc, !),
+    % Aplicar actualización recorriendo los accesos ListaAccesosLista
+    recorreAccesos(AccesosDoc, ListaAccesosLista, ListaAccesosActualizados),
+    setAccesos(DocById, ListaAccesosActualizados, DocConAccesos),
     reemplazar(ListaDocs, DocumentId, DocConAccesos, ListaDocsNueva),
     PD2 = [NombreP, FechaP, ListaReg, [], ListaDocsNueva].
-
-
-
-
-
 
 
 
@@ -368,9 +423,17 @@ paradigmaDocsShare(PD1, DocumentId, ListaPermisos, ListaUsernamesPermitidos, PD2
 %   Se comparten tres accesos ["W", "R", "C"] a dos usuarios registrados ["vflores", "alopez"] en el documento 0
 %       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C"], ["vflores", "alopez"], PD10).
 %   Se comparten tres accesos ["W", "R", "C"] a dos usuarios pero uno sin registrar ["vflores", "Griyitoxc"] y falla
-%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C"], ["vflores", "Grillitoxc"], PD10)
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C"], ["vflores", "Grillitoxc"], PD10).
 %   Se comparten accesos incorrectos ["A", "R", "C"] a dos usuarios correctamente registrados ["vflores", "alopez"]
 %       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["A", "R", "C"], ["vflores", "alopez"], PD10).
+%   Se actualizan los permisos de "vflores" del ejemplo 1
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C"], ["vflores", "alopez"], PD10), paradigmaDocsLogin(PD10, "vflores", "hola123", PD11), paradigmaDocsShare(PD11, 0, ["S","W"], ["vflores"], PD12).
+%   Se logea un usuario que no es ni dueño ni tiene permisos ("crios")   
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "crios", "qwert", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C"], ["vflores", "alopez"], PD10).
+%   Se le da el permiso "S" share a "alopez". El dueño "vflores" es quién le da el permiso
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C", "S"], ["vflores", "alopez"], PD10).
+%   Se logea "alopez" quien no es dueño del documento 0, pero tiene el permiso de compartir, por ende, puede actualizar o agregar permisos
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C", "S"], ["vflores", "alopez"], PD10), paradigmaDocsLogin(PD10, "alopez", "asdfg", PD11), paradigmaDocsShare(PD11, 0, ["R", "W"], ["vflores"], PD12).
 %
 % paradigmaDocsAdd
 %
