@@ -129,6 +129,10 @@ setAccesos(Doc1, ListaAccesos, Doc2):-
     selectNombreD(Doc1, NombreDoc), selectAutorD(Doc1, NombreAutorDoc), selectFechaD(Doc1, FechaDoc), selectIdD(Doc1, IdDoc), selectVersiones(Doc1, VerDoc),
     Doc2 = [NombreDoc, NombreAutorDoc, FechaDoc, IdDoc, VerDoc, ListaAccesos].
 
+setVersion(Doc1, ListaVersiones, Doc2):-
+    selectNombreD(Doc1, NombreDoc), selectAutorD(Doc1, NombreAutorDoc), selectFechaD(Doc1, FechaDoc), selectIdD(Doc1, IdDoc), selectAccesos(Doc1, AccDoc),
+    Doc2 = [NombreDoc, NombreAutorDoc, FechaDoc, IdDoc, ListaVersiones, AccDoc].
+
 
 
 %-------------%
@@ -237,6 +241,11 @@ recorreAccesos(ListaAccesos, [H|T], ListaRadom):-
     actualizarAccesos(ListaAccesos, H, ListaSalida),
     recorreAccesos(ListaSalida, T, ListaRadom).
     
+crearNuevaVersion(Contenido, Fecha, IdVersion, NuevaVersion):-
+    NuevaVersion = [Contenido, Fecha, IdVersion].
+
+agregarInicio(H, Lista, [H|Lista]).
+
 %---------------------------------------------------%
 % Código Principal Plataforma que emula Google Docs %
 %---------------------------------------------------%
@@ -337,6 +346,7 @@ nuevos permisos, estos se sobreescriben dentro de los permisos del usuario.
 */
 paradigmaDocsShare(PD1, DocumentId, ListaPermisos, ListaUsernamesPermitidos, PD2):-
     % Verificaciones
+    integer(DocumentId),
     \+ListaPermisos==[],
     \+ListaUsernamesPermitidos==[],
     verificarPermisos(ListaPermisos),
@@ -374,10 +384,49 @@ paradigmaDocsShare(PD1, DocumentId, ListaPermisos, ListaUsernamesPermitidos, PD2
     PD2 = [NombreP, FechaP, ListaReg, [], ListaDocsNueva].
 
 
-
-
-
-
+%------------------%
+% paradigmaDocsAdd %
+%------------------%
+/*
+Predicado que permite a un usuario logeado añadir texto al final de una versión activa de un documento buscándolo por su ID.
+Para que el usuario pueda hacer esta acción, debe tener permisos de escritura "W" o ser el propietario del documento.
+*/
+paradigmaDocsAdd(PD1, DocumentId, Fecha, ContenidoTexto, PD2):-
+    % Verificaciones previas
+    esFecha(Fecha),
+    string(ContenidoTexto),
+    integer(DocumentId),
+    % Getting info paradigmadocs
+    selectNombreP(PD1, NombreP),
+    selectFechaP(PD1, FechaP),
+    selectListaRegP(PD1, ListaReg),
+    selectUserActivoP(PD1, UserActivo),
+    selectDocumentosP(PD1, ListaDocs),
+    % Verificar User logeado
+    \+UserActivo==[],
+    % Seleccionar el documento por ID y sacarle información
+    myNth0(DocumentId, ListaDocs, DocById),
+    % Seleccionarel nombre del user logeado
+    selectNombreUser(UserActivo, UserLogeado),
+    % Getting info del doc seleccionado
+    selectAutorD(DocById, AutorDoc),
+    selectAccesos(DocById, AccesosDoc),
+    seleccionarUserPermiso(UserLogeado, AccesosDoc, UserDesdeAcceso),
+    % Verificación si el usuario logeado es Autor del doc o tiene permisos de escritura """
+    (tienePermisoW(UserDesdeAcceso), !; UserLogeado=AutorDoc, !),
+    selectVersiones(DocById, ListaVersiones),
+    % Seleccionar versión activa (primer índice)
+    myNth0(0, ListaVersiones, VersionActivaDoc),
+    % Sacar contenido para procesarlo con el contenido nuevo
+    primero(VersionActivaDoc, ContenidoAntiguo),
+    string_concat(ContenidoAntiguo, ContenidoTexto, ContenidoFinal),
+    % Peparar versión nueva
+    length(ListaVersiones, IdVersion),
+    crearNuevaVersion(ContenidoFinal, Fecha, IdVersion, NuevaVersion),
+    agregarInicio(NuevaVersion, ListaVersiones, NuevaListaVersiones),
+    setVersion(DocById, NuevaListaVersiones, DocFinal),
+    reemplazar(ListaDocs, DocumentId, DocFinal, ListaDocsNueva),
+    PD2 = [NombreP, FechaP, ListaReg, [], ListaDocsNueva].
 
 
 
@@ -436,13 +485,13 @@ paradigmaDocsShare(PD1, DocumentId, ListaPermisos, ListaUsernamesPermitidos, PD2
 %       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C", "S"], ["vflores", "alopez"], PD10), paradigmaDocsLogin(PD10, "alopez", "asdfg", PD11), paradigmaDocsShare(PD11, 0, ["R", "W"], ["vflores"], PD12).
 %
 % paradigmaDocsAdd
-%
-%
-%
-%
-%
-%
-%
+%   Se agrega "Más contenido 1" al documento 0. El usuario logeado es alguien que tiene permisos de escritura en este Doc
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C"], ["vflores", "alopez"], PD10), paradigmaDocsLogin(PD10, "alopez", "asdfg", PD11), paradigmaDocsAdd(PD11, 0, D1, " Más contenido 1", PD12).
+%   Se intenta agregar contenido a un documento (1) donde el usuario logeado no tiene permisos ni es dueño y falla
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C"], ["vflores", "alopez"], PD10), paradigmaDocsLogin(PD10, "alopez", "asdfg", PD11), paradigmaDocsAdd(PD11, 1, D1, " Más contenido 1", PD12).
+%   Se agrega contenido a un documento por ID que no existe
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C"], ["vflores", "alopez"], PD10), paradigmaDocsLogin(PD10, "alopez", "asdfg", PD11), paradigmaDocsAdd(PD11, 2, D1, " Más contenido 1", PD12). 
+%   
 % paradigmaDocsRestoreVersion
 %
 %
