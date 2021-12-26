@@ -171,6 +171,9 @@ miembro(X, [X|_]):-!.
     miembro(X, [_|T]):-miembro(X, T).
 
 primero([H|_], H).
+segundo([_, H|_], H).
+tercero([_, _, H|_], H).
+
 sacarNombres([], []):-!.
 sacarNombres([H|T], [H1|T2]):-
     primero(H, H1),
@@ -429,8 +432,45 @@ paradigmaDocsAdd(PD1, DocumentId, Fecha, ContenidoTexto, PD2):-
     PD2 = [NombreP, FechaP, ListaReg, [], ListaDocsNueva].
 
 
-
-
+%------------------%
+% paradigmaDocsAdd %
+%------------------%
+/*
+Predicado que permite a un usuario logeado añadir texto al final de una versión activa de un documento buscándolo por su ID.
+Para que el usuario pueda hacer esta acción, debe tener permisos de escritura "W" o ser el propietario del documento.
+*/
+paradigmaDocsRestoreVersion(PD1, DocumentId, IdVersion, PD2):-
+    % Verificaciones previas
+    integer(IdVersion),
+    integer(DocumentId),
+    % Getting info paradigmadocs
+    selectNombreP(PD1, NombreP),
+    selectFechaP(PD1, FechaP),
+    selectListaRegP(PD1, ListaReg),
+    selectUserActivoP(PD1, UserActivo),
+    selectDocumentosP(PD1, ListaDocs),
+    % Verificar User logeado
+    \+UserActivo==[],
+    % Seleccionar el documento por ID y sacarle información
+    myNth0(DocumentId, ListaDocs, DocById),
+    % Seleccionarel nombre del user logeado
+    selectNombreUser(UserActivo, UserLogeado),
+    % Verificar que el user logeado sea propietario
+    selectAutorD(DocById, AutorDoc),
+    UserLogeado==AutorDoc,
+    selectVersiones(DocById, ListaVersiones),
+    reverse(ListaVersiones, ListaVersionesReverse),
+    % Seleccionar Id e info de la versión
+    myNth0(IdVersion, ListaVersionesReverse, VersionPorRestaurar),
+    primero(VersionPorRestaurar, ContenidoVersionPorRestaurar),
+    segundo(VersionPorRestaurar, FechaVersionPorRestaurar),
+    % Crear nueva versión
+    length(ListaVersiones, IdVersionNueva),
+    crearNuevaVersion(ContenidoVersionPorRestaurar, FechaVersionPorRestaurar, IdVersionNueva, NuevaVersion),
+    agregarInicio(NuevaVersion, ListaVersiones, NuevaListaVersiones),
+    setVersion(DocById, NuevaListaVersiones, DocFinal),
+    reemplazar(ListaDocs, DocumentId, DocFinal, ListaDocsNueva),
+    PD2 = [NombreP, FechaP, ListaReg, [], ListaDocsNueva].
 
 
 
@@ -493,15 +533,15 @@ paradigmaDocsAdd(PD1, DocumentId, Fecha, ContenidoTexto, PD2):-
 %       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C"], ["vflores", "alopez"], PD10), paradigmaDocsLogin(PD10, "alopez", "asdfg", PD11), paradigmaDocsAdd(PD11, 2, D1, " Más contenido 1", PD12). 
 %   
 % paradigmaDocsRestoreVersion
-%
-%
-%
-%
-%
-%
+%   Se restaura la versión 0 del documento 0
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C"], ["vflores", "alopez"], PD10), paradigmaDocsLogin(PD10, "alopez", "asdfg", PD11), paradigmaDocsAdd(PD11, 0, D1, " Más contenido 1", PD12), paradigmaDocsLogin(PD12, "vflores", "hola123", PD13), paradigmaDocsRestoreVersion(PD13, 0, 0, PD14).
+%   Se intenta restaurar una versión de un documento sin ser dueño de este
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C"], ["vflores", "alopez"], PD10), paradigmaDocsLogin(PD10, "alopez", "asdfg", PD11), paradigmaDocsAdd(PD11, 0, D1, " Más contenido 1", PD12), paradigmaDocsLogin(PD12, "alopez", "asdfg", PD13), paradigmaDocsRestoreVersion(PD13, 0, 0, PD14).
+%   Se restaura una versión inexistente
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C"], ["vflores", "alopez"], PD10), paradigmaDocsLogin(PD10, "alopez", "asdfg", PD11), paradigmaDocsAdd(PD11, 0, D1, " Más contenido 1", PD12), paradigmaDocsLogin(PD12, "vflores", "hola123", PD13), paradigmaDocsRestoreVersion(PD13, 0, 9, PD14). 
 %
 % paradigmaDocsToString
-%
+%   
 %
 %
 %
