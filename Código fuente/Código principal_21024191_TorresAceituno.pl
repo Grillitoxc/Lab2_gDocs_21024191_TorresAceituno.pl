@@ -22,6 +22,7 @@
 %    modificarMesF(F1, M, F2). Aridad = 3
 %    modificarAnnoF(F1, A, F2). Aridad = 3
 %    mesToString(M, MesEnString). Aridad = 2
+%    prepararFecha(Fecha, FechaEnString), Aridad = 2
 %
 % Clausulas
 % Hechos
@@ -71,6 +72,16 @@ modificarAnnoF(F1, A, F2):-
 % Otros predicados del TDA
 mesToString(M, MesEnString):- mesString(M, MesEnString).
 
+prepararFecha(Fecha, FechaString):-
+    seleccionarDiaF(Fecha, D),
+    seleccionarMesF(Fecha, M),
+    seleccionarAnnoF(Fecha, A),
+    string_concat(D, " de ", F1),
+    mesToString(M, M1),
+    string_concat(F1, M1, F2),
+    string_concat(F2, " de ", F3),
+    string_concat(F3, A, FechaString).
+
 
 %-------------------%
 % TDA ParadigmaDocs %
@@ -114,23 +125,81 @@ selectNombreUser([User], User).
 %    Password: String (Contraseña del usuario)
 %    Date: Fecha (Fecha de creación)
 %    User: String
+%    ListaUsuarios: Lista
+%    ListaUsuariosRegistrados: Lista
 %
 % Predicados
 %    usuario(Username, Password, Date, UOut). Aridad = 4
 %    seleccionarUserPermiso(User, [Acc|AccT], Acc). Aridad = 3
+%    prepararUsers(ListaUsuarios, UsersString). Aridad = 2
+%    verificarRegistrados(ListaUsuariosRegistrados, Lista). Aridad = 2
+%    seleccionarUserRegistrado(User, ListaUsuariosRegistrados, RegistradoSalida). Aridad = 3
+%    selectNombreU(User, NombreUser). Aridad = 2
+%    selectContrasenaU(User, ContrasennaUser). Aridad = 2
+%    selectFechaU(User, FechaUser). Aridad = 2
+%    selectPrimerUser(ListaUser, User). Aridad = 2
+%    selectPrimerNombre(User, Nombre). Aridad = 2
+%    selectNombresRegistrados(ListaUsersRegistrados, ListaNombres). Aridad = 2
+%    selectPrimerYSegundoNombre(User, NombreYContrasena). Aridad = 2
+%    selectNombresYContrasenas(ListaUsersRegistrados, ListaNombresYContrasenas). Aridad = 2
 %
 % Clausulas
-% Constructor/Pertinencia/Selectores/Modificadores
+% Constructor/Pertinencia/Modificadores
 usuario(Username, Password, Date, User):-
     string(Username), string(Password), User = [Username, Password, Date].
 
-% Selector
+% Selectores
+selectNombreU([UserU, _, _], UserU).
+selectContrasenaU([_, ContrasennaU, _], ContrasennaU).
+selectFechaU([_, _, FechaU], FechaU).
+selectPrimerUser([H|_], H).
+
 seleccionarUserPermiso(_, [], []):-!.
 seleccionarUserPermiso(User, [Acc|AccT], Acc):-
     miembro(User, Acc),
     seleccionarUserPermiso(User, AccT, _), !.
 seleccionarUserPermiso(User, [_|AccT], UsuarioConPermisos):-
     seleccionarUserPermiso(User, AccT, UsuarioConPermisos), !.
+
+selectPrimerNombre([H|_], H).
+
+selectNombresRegistrados([], []):-!.
+selectNombresRegistrados([H|T], [H1|T2]):-
+    selectPrimerNombre(H, H1),
+    selectNombresRegistrados(T, T2).
+
+selectPrimerYSegundoNombre([Name, Pass|_], [Name, Pass]).
+
+selectNombresYContrasenas([], []):-!.
+selectNombresYContrasenas([H|T], [H1|T2]):-
+    selectPrimerYSegundoNombre(H, H1),
+    selectNombresYContrasenas(T, T2).
+
+% Otros predicados de TDA usuario
+prepararUsers([], []):-!.
+prepararUsers([User|SigUsers], [UserString|SigUserString]):-
+    selectNombreU(User, NombreU),
+    selectContrasenaU(User, ContrasennaU),
+    selectFechaU(User, FechaU),
+    prepararFecha(FechaU, FechaString),
+    string_concat("Nombre: ", NombreU, S1),
+    string_concat(S1, " Contrasena: ", S2),
+    string_concat(S2, ContrasennaU, S3),
+    string_concat(S3, " Fecha de creacion: ", S4),
+    string_concat(S4, FechaString, UserString),
+    prepararUsers(SigUsers, SigUserString).
+
+verificarRegistrados([], _):-!.
+verificarRegistrados([H|T], Lista):-
+    miembro(H, Lista),
+    verificarRegistrados(T, Lista).
+
+seleccionarUserRegistrado(_, [], []):-!.
+seleccionarUserRegistrado(User, [Registrado|SigRegistrados], [Registrado|RegistradoSalidas]):-
+    miembro(User, Registrado),
+    seleccionarUserRegistrado(User, SigRegistrados, RegistradoSalidas), !.
+seleccionarUserRegistrado(User, [_|SigRegistrados], RegTemp):-
+    seleccionarUserRegistrado(User, SigRegistrados, RegTemp).
 
 
 %---------------%
@@ -148,6 +217,12 @@ seleccionarUserPermiso(User, [_|AccT], UsuarioConPermisos):-
 %    AutorD: String
 %    FechaD: Fecha
 %    Contenido: String
+%    IdVersion: Integer
+%    Version: Lista
+%    Versiones: Lista
+%    Autor: String
+%    ListaDocs: Lista
+%    User: String
 %
 % Predicados
 %    documento(Nombre, Fecha, Contenido, DOut). Aridad = 4
@@ -160,6 +235,18 @@ seleccionarUserPermiso(User, [_|AccT], UsuarioConPermisos):-
 %    setIdDoc(Doc, Id, Doc2). Aridad = 3
 %    setAccesos(Doc, ListaAccesos, Doc2). Aridad = 3
 %    setVersion(Doc, ListaVersiones, Doc2). Aridad = 3 
+%    crearNuevaVersion(Contenido, Fecha, IdVersion, NuevaVersion). Aridad = 4
+%    agregarInicioVersiones(Version, Lista, Lista). Aridad = 3
+%    prepararVersion(Version, VersionString). Aridad = 2
+%    prepararVersiones(Versiones, VersionString). Aridad = 2
+%    prepararDoc(Doc, DocString). Aridad = 2
+%    prepararDocs(ListaDocs, DocsEnString). Aridad = 2
+%    seleccionarDocPorAutor(Autor, ListaDocs, DocSalida). Aridad = 3
+%    seleccionarAccesosEnDocPorUser(User, ListaDocs, DocSalida). Aridad = 3
+%    selectContenidoV(Version, ContenidoV). Aridad = 2
+%    selectFechaV(Version, FechaV). Aridad = 2
+%    selectIdV(Version, IdV). Aridad = 2
+%    selectPrimeraVersion(ListaVersiones, Version). Aridad = 2
 %
 % Clausulas
 % Constructor/Pertinencia
@@ -174,6 +261,10 @@ selectFechaD([_, _, FechaD, _, _, _], FechaD).
 selectIdD([_, _, _, IdD, _, _], IdD).
 selectVersiones([_, _, _, _, ListaVer, _], ListaVer).
 selectAccesos([_, _, _, _, _, ListaAccesos], ListaAccesos).
+selectContenidoV([ContenidoV, _, _], ContenidoV).
+selectFechaV([_, FechaV, _], FechaV).
+selectIdV([_, _, IdV], IdV).
+selectPrimeraVersion([Version|_], Version).
 
 % Modificadores
 setIdDoc(Doc1, Id, Doc2):-
@@ -188,169 +279,16 @@ setVersion(Doc1, ListaVersiones, Doc2):-
     selectNombreD(Doc1, NombreDoc), selectAutorD(Doc1, NombreAutorDoc), selectFechaD(Doc1, FechaDoc), selectIdD(Doc1, IdDoc), selectAccesos(Doc1, AccDoc),
     Doc2 = [NombreDoc, NombreAutorDoc, FechaDoc, IdDoc, ListaVersiones, AccDoc].
 
-
-%-------------%
-% TDA Accesos %
-%-------------%
-%
-% Dominios
-%    Permisos: Lista
-%    Usuarios: Permisos
-%    ListaNombre: Lista
-%    ListaAccesos: Lista
-%    Name: String
-%    User: String
-%    Acceso: String
-%
-% Predicados
-%    crearAccesos(Permisos, Usuarios, ListaAccesos). Aridad = 3
-%    arregloAccesos(Lista, Lista). Aridad = 2
-%    selectNombreAcceso(ListaNombre, Name). Aridad = 2
-%    verificarPermisos(ListaAccesos). Aridad = 1
-%    tienePermisoS(User). Aridad = 1
-%    tienePermisoW(User). Aridad = 1
-%    tienePermisoR(User). Aridad = 1
-%    tienePermisoW(User). Aridad = 1
-%    actualizarAccesos(ListaAccesos, Acceso, ListaAcceso). Aridad = 3
-%    recorreAccesos(ListaAccesos, Lista, ListaAccesos). Aridad = 3
-%
-% Clausulas
-% Predicado que aporta al constructor para cambiar formato de manera recursiva
-arregloAccesos([], []):-!.
-arregloAccesos([H|T], [[H]|T1]):-
-    arregloAccesos(T, T1).
-
-% Constructor
-crearAccesos(Permisos, Usuarios, ListaAccesos):-
-    verificarPermisos(Permisos),
-    is_list(Permisos),
-    is_list(Usuarios),
-    arregloAccesos(Usuarios, UsuariosNew),
-    maplist(append(Permisos), UsuariosNew, ListaAcc),
-    maplist(reverse, ListaAcc, ListaAccesos).
-
-% Selectores
-selectNombreAcceso([Name|_], Name).
-
-% Otros predicados de TDA Acceso
-verificarPermisos([]):-!.
-verificarPermisos([H|T]):-
-    (H == "W"; H == "C"; H == "S"; H == "R"), !,
-    verificarPermisos(T).
-
-tienePermisoS(User):-
-    miembro("S", User).
-
-tienePermisoW(User):-
-    miembro("W", User).
-
-tienePermisoR(User):-
-    miembro("R", User).
-
-tienePermisoC(User):-
-    miembro("C", User).
-
-actualizarAccesos([], Acceso, [Acceso]).
-actualizarAccesos([PrimerAcceso|SiguientesAccesos], Acceso, [Acceso|SiguientesAccesos]):-
-    selectNombreAcceso(PrimerAcceso, Nombre),
-    selectNombreAcceso(Acceso, Nombre), !.
-actualizarAccesos([PrimerAcceso|SiguientesAccesos], Acceso, [PrimerAcceso|NuevosAccesos]):-
-    actualizarAccesos(SiguientesAccesos, Acceso, NuevosAccesos).
-
-recorreAccesos(ListaAccesos, [], ListaAccesos):- !.
-recorreAccesos(ListaAccesos, [H|T], ListaRadom):-
-    actualizarAccesos(ListaAccesos, H, ListaSalida),
-    recorreAccesos(ListaSalida, T, ListaRadom).
-
-
-%-------------------------------------------------------------------------------%
-% Otros predicados (que ayudan al funcionamiento de los predicados principales) %
-%-------------------------------------------------------------------------------%
-miembro(X, [X|_]):-!.
-    miembro(X, [_|T]):-miembro(X, T).
-
-primero([H|_], H).
-segundo([_, H|_], H).
-tercero([_, _, H|_], H).
-cuarto([_, _, _, H|_], H).
-quinto([_, _, _, _, H|_], H).
-sexto([_, _, _, _, _, H|_], H).
-
-getNombresRegistrados([], []):-!.
-getNombresRegistrados([H|T], [H1|T2]):-
-    primero(H, H1),
-    getNombresRegistrados(T, T2).
-
-primeroAndSegundo([Name, Pass|_], [Name, Pass]).
-
-sacarNombresAndContrasenas([], []):-!.
-sacarNombresAndContrasenas([H|T], [H1|T2]):-
-    primeroAndSegundo(H, H1),
-    sacarNombresAndContrasenas(T, T2).
-
-verificarRegistrados([], _):-!.
-verificarRegistrados([H|T], Lista):-
-    miembro(H, Lista),
-    verificarRegistrados(T, Lista).
-
-eliminarDuplicados([], []):-!.
-eliminarDuplicados([H | T], Lista):-
-    member(H, T), !,
-    eliminarDuplicados(T, Lista).
-eliminarDuplicados([H | T], [H | Lista]):-
-    eliminarDuplicados(T, Lista).
-
-myNth0(0, [H|_], H):-!.
-myNth0(Indice, [_|T], E):-
-    Indice1 is Indice - 1,
-    myNth0(Indice1, T, E).
-
-reemplazar([_|T], 0, X, [X|T]):-!.
-reemplazar([H|T], I, X, [H|R]) :-
-    I > 0,
-    I1 is I - 1,
-    reemplazar(T, I1, X, R).
-
+% Otros predicados del TDA Documento
 crearNuevaVersion(Contenido, Fecha, IdVersion, NuevaVersion):-
     NuevaVersion = [Contenido, Fecha, IdVersion].
 
-agregarInicio(H, Lista, [H|Lista]).
-
-prepararFecha(Fecha, FechaString):-
-    seleccionarDiaF(Fecha, D),
-    seleccionarMesF(Fecha, M),
-    seleccionarAnnoF(Fecha, A),
-    string_concat(D, " de ", F1),
-    mesToString(M, M1),
-    string_concat(F1, M1, F2),
-    string_concat(F2, " de ", F3),
-    string_concat(F3, A, FechaString).
-
-prepararUsers([], []):-!.
-prepararUsers([User|SigUsers], [UserString|SigUserString]):-
-    primero(User, NombreU),
-    segundo(User, ContrasennaU),
-    tercero(User, FechaU),
-    prepararFecha(FechaU, FechaString),
-    string_concat("Nombre: ", NombreU, S1),
-    string_concat(S1, " Contrasena: ", S2),
-    string_concat(S2, ContrasennaU, S3),
-    string_concat(S3, " Fecha de creacion: ", S4),
-    string_concat(S4, FechaString, UserString),
-    prepararUsers(SigUsers, SigUserString).
-
-prepararAcceso([NombreUser|Accesos], AccesosString):-
-    atomics_to_string(Accesos, ", ", AccesosEnString),
-    ListaString = ["\n      Usuario: ", NombreUser, "\n      Permisos: ", AccesosEnString],
-    atomics_to_string(ListaString, AccesosString).
-    
-prepararAccesos(ListaAccesos, ListaAccesosString):-
-    maplist(prepararAcceso(), ListaAccesos, ListaAccesosString).
+agregarInicioVersiones(H, Lista, [H|Lista]).
 
 prepararVersion(Version, VersionString):-
-    primero(Version, ContenidoV),
-    segundo(Version, FechaV),
-    tercero(Version, IdV),
+    selectContenidoV(Version, ContenidoV),
+    selectFechaV(Version, FechaV),
+    selectIdV(Version, IdV),
     prepararFecha(FechaV, FechaEnString),
     ListaString = ["\n      Version: ", IdV, "\n      Contenido: ", ContenidoV, "\n      Fecha de modificacion: ", FechaEnString],
     atomics_to_string(ListaString, VersionString).
@@ -359,12 +297,12 @@ prepararVersiones(Versiones, VersionesEnString):-
     maplist(prepararVersion(), Versiones, VersionesEnString).
 
 prepararDoc(Doc, DocString):-
-    primero(Doc, TituloD),
-    segundo(Doc, AutorD),
-    tercero(Doc, FechaD),
-    cuarto(Doc, IdD),
-    quinto(Doc, VersionesD),
-    sexto(Doc, AccesosD),
+    selectNombreD(Doc, TituloD),
+    selectAutorD(Doc, AutorD),
+    selectFechaD(Doc, FechaD),
+    selectIdD(Doc, IdD),
+    selectVersiones(Doc, VersionesD),
+    selectAccesos(Doc, AccesosD),
     % Preparación 
     prepararFecha(FechaD, FechaEnString),
     prepararAccesos(AccesosD, AccesosString),
@@ -395,30 +333,220 @@ seleccionarAccesosEnDocPorUser(User, [Doc|SigDocs], [Doc|DocsSalidas]):-
 seleccionarAccesosEnDocPorUser(User, [_|SigDocs], Salida):-
     seleccionarAccesosEnDocPorUser(User, SigDocs, Salida), !.
 
-seleccionarUserRegistrado(_, [], []):-!.
-seleccionarUserRegistrado(User, [Registrado|SigRegistrados], [Registrado|RegistradoSalidas]):-
-    miembro(User, Registrado),
-    seleccionarUserRegistrado(User, SigRegistrados, RegistradoSalidas), !.
-seleccionarUserRegistrado(User, [_|SigRegistrados], RegTemp):-
-    seleccionarUserRegistrado(User, SigRegistrados, RegTemp).
-    
+%-------------%
+% TDA Accesos %
+%-------------%
+%
+% Dominios
+%    Permisos: Lista
+%    Usuarios: Permisos
+%    ListaNombre: Lista
+%    ListaAccesos: Lista
+%    Name: String
+%    User: String
+%    Acceso: String
+%    Accesos: Lista Acceso
+%
+% Predicados
+%    crearAccesos(Permisos, Usuarios, ListaAccesos). Aridad = 3
+%    arregloAccesos(Lista, Lista). Aridad = 2
+%    selectNombreAcceso(ListaNombre, Name). Aridad = 2
+%    verificarPermisos(ListaAccesos). Aridad = 1
+%    tienePermisoS(User). Aridad = 1
+%    tienePermisoW(User). Aridad = 1
+%    tienePermisoR(User). Aridad = 1
+%    tienePermisoW(User). Aridad = 1
+%    actualizarAccesos(ListaAccesos, Acceso, ListaAcceso). Aridad = 3
+%    recorreAccesos(ListaAccesos, Lista, ListaAccesos). Aridad = 3
+%    prepararAcceso(Accesos, AccesosString). Aridad = 2
+%    prepararAccesos(ListaAccesos, ListaAccesosString). Aridad = 2
+%
+% Clausulas
+% Constructor
+crearAccesos(Permisos, Usuarios, ListaAccesos):-
+    verificarPermisos(Permisos),
+    is_list(Permisos),
+    is_list(Usuarios),
+    arregloAccesos(Usuarios, UsuariosNew),
+    maplist(append(Permisos), UsuariosNew, ListaAcc),
+    maplist(reverse, ListaAcc, ListaAccesos).
+
+% Selectores
+selectNombreAcceso([Name|_], Name).
+
+% Otros predicados de TDA Acceso
+arregloAccesos([], []):-!.
+arregloAccesos([H|T], [[H]|T1]):-
+    arregloAccesos(T, T1).
+
+verificarPermisos([]):-!.
+verificarPermisos([H|T]):-
+    (H == "W"; H == "C"; H == "S"; H == "R"), !,
+    verificarPermisos(T).
+
+tienePermisoS(User):-
+    miembro("S", User).
+
+tienePermisoW(User):-
+    miembro("W", User).
+
+tienePermisoR(User):-
+    miembro("R", User).
+
+tienePermisoC(User):-
+    miembro("C", User).
+
+actualizarAccesos([], Acceso, [Acceso]).
+actualizarAccesos([PrimerAcceso|SiguientesAccesos], Acceso, [Acceso|SiguientesAccesos]):-
+    selectNombreAcceso(PrimerAcceso, Nombre),
+    selectNombreAcceso(Acceso, Nombre), !.
+actualizarAccesos([PrimerAcceso|SiguientesAccesos], Acceso, [PrimerAcceso|NuevosAccesos]):-
+    actualizarAccesos(SiguientesAccesos, Acceso, NuevosAccesos).
+
+recorreAccesos(ListaAccesos, [], ListaAccesos):- !.
+recorreAccesos(ListaAccesos, [H|T], ListaRadom):-
+    actualizarAccesos(ListaAccesos, H, ListaSalida),
+    recorreAccesos(ListaSalida, T, ListaRadom).
+
+prepararAcceso([NombreUser|Accesos], AccesosString):-
+    atomics_to_string(Accesos, ", ", AccesosEnString),
+    ListaString = ["\n      Usuario: ", NombreUser, "\n      Permisos: ", AccesosEnString],
+    atomics_to_string(ListaString, AccesosString).
+
+prepararAccesos(ListaAccesos, ListaAccesosString):-
+    maplist(prepararAcceso(), ListaAccesos, ListaAccesosString).
+
+
+%-------------------------------------------------------------------------------%
+% Otros predicados (que ayudan al funcionamiento de los predicados principales) %
+%-------------------------------------------------------------------------------%
+/*
+Predicado que verifica si un elemento está dentro de una lista
+Dominios: X: Atomic
+*/
+miembro(X, [X|_]):-!.
+    miembro(X, [_|T]):-miembro(X, T).
+
+/*
+Predicado que elimina los elementos duplicados de una lista
+Dominios: Lista: Lista
+*/
+eliminarDuplicados([], []):-!.
+eliminarDuplicados([H|T], Lista):-
+    member(H, T), !,
+    eliminarDuplicados(T, Lista).
+eliminarDuplicados([H|T], [H|Lista]):-
+    eliminarDuplicados(T, Lista).
+
+/*
+Predicado que selecciona un elemento de una lista por su índice dentro de ella
+Dominios: Indice: Integer
+          Lista: Lista
+*/
+myNth0(0, [H|_], H):-!.
+myNth0(Indice, [_|T], E):-
+    Indice1 is Indice - 1,
+    myNth0(Indice1, T, E).
+
+/*
+Predicado que reemplaza un elemento de una lista en una posición específica
+Dominios: I: Integer
+          Lista: Lista
+*/
+reemplazar([_|T], 0, X, [X|T]):-!.
+reemplazar([H|T], I, X, [H|R]) :-
+    I > 0,
+    I1 is I - 1,
+    reemplazar(T, I1, X, R).
+
+
 %---------------------------------------------------%
 % Código Principal Plataforma que emula Google Docs %
 %---------------------------------------------------%
 % Dominios:
-%   PD1: List (Plataforma ParadigmaDocs).
-%   Username: String.
-%   Password: String.
-%   
-%   
+%    PD1: Paradigmadocs
+%    Username: String
+%    Password: String
+%    Fecha: Fecha
+%    DocumentId: Integer
+%    ContenidoTexto: Contenido
+%    IdVersion: Integer
+%    StringParadigmaDocs: String
+%    ListaPermisos: Lista
+%    ListaUsernamesPermitidos: Lista
+%    Contenido: String
+%    Nombre: String
+%
 % Predicados:
-%   paradigmaDocsRegister(PD1, Fecha, Username, Password, PD2).             aridad = 5
-%   paradigmaDocsLogin(PD1, Username, Password, PD2).                       aridad = 4
+%    paradigmaDocsRegister(PD1, Fecha, Username, Password, PD2). Aridad = 5
+%    paradigmaDocsLogin(PD1, Username, Password, PD2). Aridad = 4
+%    paradigmaDocsCreate(PD1, Fecha, Nombre, Contenido, PD2). Aridad = 5
+%    paradigmaDocsShare(PD1, DocumentId, ListaPermisos, ListaUsernamesPermitidos, PD2). Aridad = 5
+%    paradigmaDocsAdd(PD1, DocumentId, Fecha, ContenidoTexto, PD2). Aridad = 5
+%    paradigmaDocsRestoreVersion(PD1, DocumentId, IdVersion, PD2). Aridad = 4
+%    paradigmaDocsToString(PD1, StringParadigmaDocs). Aridad = 2
 %
 % Metas:
-%   Principales: paradigmaDocsRegister, paradigmaDocsLogin
-%   Secundarias: selectNombreP, selectFechaP
-
+%    Principales:
+%       paradigmaDocsRegister
+%       paradigmaDocsLogin
+%       paradigmaDocsCreate
+%       paradigmaDocsShare
+%       paradigmaDocsAdd
+%       paradigmaDocsRestoreVersion
+%       paradigmaDocsToString.
+%    Secundarias:
+%       selectNombreP
+%       selectFechaP
+%       selectListaRegP
+%       selectUserActivoP
+%       selectDocumentosP
+%       usuario
+%       selectNombresRegistrados
+%       miembro
+%       append
+%       string
+%       selectNombresYContrasenas
+%       selectNombreUser
+%       documento
+%       length
+%       setIdDoc
+%       integer
+%       myNth0
+%       seleccionarUserPermiso
+%       string_concat
+%       selectPrimeraVersion
+%       eliminarDuplicados
+%       verificarPermisos
+%       verificarRegistrados
+%       tienePermisoW
+%       setVersion
+%       reemplazar
+%       crearAccesos
+%       selectAccesos
+%       selectAutorD
+%       recorreAccesos
+%       selectVersiones
+%       selectContenidoV
+%       selectFechaV
+%       selectIdV
+%       crearNuevaVersion
+%       agregarInicioVersiones
+%       setVersionrsiones
+%       reverse
+%       prepararFecha
+%       prepararUsers
+%       atomics_to_string
+%       prepararDocs
+%       selectPrimerUser
+%       prepararVersion
+%       prepararAccesos
+%       selectContrasenaU
+%       selectFechaU
+%       seleccionarAccesosEnDocPorUser
+%       seleccionarDocPorAutor
+%
+% Clausulas principales:
 %-----------------------%
 % paradigmaDocsRegister %
 %-----------------------%
@@ -434,7 +562,7 @@ paradigmaDocsRegister(PD1, Fecha, Username, Password, PD2):-
     selectUserActivoP(PD1, UserActivo),
     selectDocumentosP(PD1, ListaDocs),
     usuario(Username, Password, Fecha, User1),
-    getNombresRegistrados(ListaReg, Nombres),
+    selectNombresRegistrados(ListaReg, Nombres),
     \+miembro(Username, Nombres),
     append(ListaReg, [User1], ListaRegistroNueva),
     PD2 = [NombreP, FechaP, ListaRegistroNueva, UserActivo, ListaDocs].
@@ -455,7 +583,7 @@ paradigmaDocsLogin(PD1, Username, Password, PD2):-
     selectFechaP(PD1, FechaP),
     selectListaRegP(PD1, ListaReg),
     selectDocumentosP(PD1, ListaDocs),
-    sacarNombresAndContrasenas(ListaReg, ListaNyC),
+    selectNombresYContrasenas(ListaReg, ListaNyC),
     miembro([Username, Password], ListaNyC),
     PD2 = [NombreP, FechaP, ListaReg, [Username], ListaDocs].
 
@@ -512,7 +640,7 @@ paradigmaDocsShare(PD1, DocumentId, ListaPermisos, ListaUsernamesPermitidos, PD2
     selectNombreP(PD1, NombreP),
     selectFechaP(PD1, FechaP),
     selectListaRegP(PD1, ListaReg),
-    getNombresRegistrados(ListaReg, NombresRegistrados),
+    selectNombresRegistrados(ListaReg, NombresRegistrados),
     % Verificar que los users nuevos estén registrados en la plataforma
     verificarRegistrados(ListaUsernamesPermitidos, NombresRegistrados),
     % Select user logeado y verificar que no sea vacío
@@ -573,12 +701,12 @@ paradigmaDocsAdd(PD1, DocumentId, Fecha, ContenidoTexto, PD2):-
     % Seleccionar versión activa (primer índice)
     myNth0(0, ListaVersiones, VersionActivaDoc),
     % Sacar contenido para procesarlo con el contenido nuevo
-    primero(VersionActivaDoc, ContenidoAntiguo),
+    selectPrimeraVersion(VersionActivaDoc, ContenidoAntiguo),
     string_concat(ContenidoAntiguo, ContenidoTexto, ContenidoFinal),
     % Peparar versión nueva
     length(ListaVersiones, IdVersion),
     crearNuevaVersion(ContenidoFinal, Fecha, IdVersion, NuevaVersion),
-    agregarInicio(NuevaVersion, ListaVersiones, NuevaListaVersiones),
+    agregarInicioVersiones(NuevaVersion, ListaVersiones, NuevaListaVersiones),
     setVersion(DocById, NuevaListaVersiones, DocFinal),
     reemplazar(ListaDocs, DocumentId, DocFinal, ListaDocsNueva),
     PD2 = [NombreP, FechaP, ListaReg, [], ListaDocsNueva].
@@ -614,12 +742,12 @@ paradigmaDocsRestoreVersion(PD1, DocumentId, IdVersion, PD2):-
     reverse(ListaVersiones, ListaVersionesReverse),
     % Seleccionar Id e info de la versión
     myNth0(IdVersion, ListaVersionesReverse, VersionPorRestaurar),
-    primero(VersionPorRestaurar, ContenidoVersionPorRestaurar),
-    segundo(VersionPorRestaurar, FechaVersionPorRestaurar),
+    selectContenidoV(VersionPorRestaurar, ContenidoVersionPorRestaurar),
+    selectFechaV(VersionPorRestaurar, FechaVersionPorRestaurar),
     % Crear nueva versión
     length(ListaVersiones, IdVersionNueva),
     crearNuevaVersion(ContenidoVersionPorRestaurar, FechaVersionPorRestaurar, IdVersionNueva, NuevaVersion),
-    agregarInicio(NuevaVersion, ListaVersiones, NuevaListaVersiones),
+    agregarInicioVersiones(NuevaVersion, ListaVersiones, NuevaListaVersiones),
     setVersion(DocById, NuevaListaVersiones, DocFinal),
     reemplazar(ListaDocs, DocumentId, DocFinal, ListaDocsNueva),
     PD2 = [NombreP, FechaP, ListaReg, [], ListaDocsNueva].
@@ -661,9 +789,9 @@ paradigmaDocsToString(PD1, StringParadigmaDocs):-
     selectNombreUser(UserActivo, UserLogeado),
     selectDocumentosP(PD1, ListaDocs),
     seleccionarUserRegistrado(UserLogeado, ListaReg, ListaInfoUser),
-    primero(ListaInfoUser, InfoUser),
-    segundo(InfoUser, Contrasenna),
-    tercero(InfoUser, FechaU),
+    selectPrimerUser(ListaInfoUser, InfoUser),
+    selectContrasenaU(InfoUser, Contrasenna),
+    selectFechaU(InfoUser, FechaU),
     prepararFecha(FechaU, FechaUserEnString),
     prepararFecha(FechaP, FechaEnString),
     string_concat("#---------------#\n# PARADIGMADOCS #\n#---------------#\n\nNombre de la plataforma: ", NombreP, S1),
@@ -758,4 +886,3 @@ paradigmaDocsToString(PD1, StringParadigmaDocs):-
 %       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C"], ["vflores", "alopez"], PD10), paradigmaDocsLogin(PD10, "alopez", "asdfg", PD11), paradigmaDocsAdd(PD11, 0, D1, " Más contenido 1", PD12), paradigmaDocsLogin(PD12, "vflores", "hola123", PD13), paradigmaDocsToString(PD13, PDFINAL), write(PDFINAL).
 %   Se muestra el contenido del usuario logeado "crios" de manera exitosa
 %       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C"], ["vflores", "alopez"], PD10), paradigmaDocsLogin(PD10, "alopez", "asdfg", PD11), paradigmaDocsAdd(PD11, 0, D1, " Más contenido 1", PD12), paradigmaDocsLogin(PD12, "crios", "qwert", PD13), paradigmaDocsShare(PD13, 1, ["W", "S", "R"], ["alopez", "crios"], PD14), paradigmaDocsLogin(PD14, "crios", "qwert", PD15), paradigmaDocsToString(PD15, PDFINAL), write(PDFINAL).
-%
