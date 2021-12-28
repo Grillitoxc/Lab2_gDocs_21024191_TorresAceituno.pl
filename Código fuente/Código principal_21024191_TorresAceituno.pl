@@ -11,15 +11,22 @@
 %    D: un número entero (representa el día)
 %    M: un número entero (representa el mes)
 %    A: un número entero (representa el año)
+%    F1: una fecha
 %
 % Predicados
-%    fecha(D, M, A, FOut).                                                  aridad = 4
+%    fecha(D, M, A, FOut). Aridad = 4                                                  
+%    seleccionarDiaF([D, _, _], D). Aridad = 2
+%    seleccionarMesF([_, M, _], M). Aridad = 2
+%    seleccionarAnnoF([_, _, A], A). Aridad = 2
+%    modificarDiaF(F1, D, F2). Aridad = 3
+%    modificarMesF(F1, M, F2). Aridad = 3
+%    modificarAnnoF(F1, A, F2). Aridad = 3
+%    mesToString(M, MesEnString). Aridad = 2
 %
 % Clausulas
 % Hechos
 mes(1,31).
 mes(2,28).
-mes(2,29).
 mes(3,31).
 mes(4,30).
 mes(5,31).
@@ -30,15 +37,23 @@ mes(9,30).
 mes(10,31).
 mes(11,30).
 mes(12,31).
+mesString(1, "Enero").
+mesString(2, "Febrero").
+mesString(3, "Marzo").
+mesString(4, "Abril").
+mesString(5, "Mayo").
+mesString(6, "Junio").
+mesString(7, "Julio").
+mesString(8, "Agosto").
+mesString(9, "Septiembre").
+mesString(10, "Octubre").
+mesString(11, "Noviembre").
+mesString(12, "Diciembre").
 
 % Reglas
 % Constructor
 fecha(D, M, A, Fecha):-
     integer(D), integer(M), integer(A), mes(M, Dias), D>0, D=<Dias, Fecha = [D, M, A].
-
-% Pertinencia
-esFecha(Fecha):-
-    is_list(Fecha).
 
 % Selectores
 seleccionarDiaF([D, _, _], D).
@@ -47,11 +62,15 @@ seleccionarAnnoF([_, _, A], A).
 
 % Modificadores
 modificarDiaF(F1, D, F2):-
-    seleccionarMesF(F1, M1), seleccionarAnnoF(F1, A1), fecha(D, M1, A1, F2), esFecha(F2).
+    seleccionarMesF(F1, M1), seleccionarAnnoF(F1, A1), fecha(D, M1, A1, F2).
 modificarMesF(F1, M, F2):-
-    seleccionarDiaF(F1, D1), seleccionarAnnoF(F1, A1), fecha(D1, M, A1, F2), esFecha(F2).
+    seleccionarDiaF(F1, D1), seleccionarAnnoF(F1, A1), fecha(D1, M, A1, F2).
 modificarAnnoF(F1, A, F2):-
-    seleccionarDiaF(F1, D1), seleccionarMesF(F1, M1), fecha(D1, M1, A, F2), esFecha(F2).
+    seleccionarDiaF(F1, D1), seleccionarMesF(F1, M1), fecha(D1, M1, A, F2).
+
+% Otros predicados del TDA
+mesToString(M, MesEnString):- mesString(M, MesEnString).
+
 
 %-------------------%
 % TDA ParadigmaDocs %
@@ -60,14 +79,22 @@ modificarAnnoF(F1, A, F2):-
 % Dominios
 %    Name: String (Nombre de la plataforma)
 %    Date: Fecha (Fecha de creación)
+%    PD: plataforma paradigmadocs
+%    ListaUser: List
 %
 % Predicados
-%    paradigmaDocs(Name, Date, POut).                                       aridad = 3
-%     
+%    paradigmaDocs(Name, Date, POut). Aridad = 3
+%    selectNombreP(PD, NombreP). Aridad = 2
+%    selectFechaP(PD, FechaP).
+%    selectListaRegP(PD, ListaReg).
+%    selectUserActivoP(PD, UserActivo).
+%    selectDocumentosP(PD, ListaDocs).
+%    selectNombreUser(ListaUser, User).
+%
 % Clausulas
 % Constructor/Pertinencia/Modificadores
 paradigmaDocs(Name, Date, ParadigmaDocs):-
-    string(Name), esFecha(Date), ParadigmaDocs = [Name, Date, [], [], []].
+    string(Name), ParadigmaDocs = [Name, Date, [], [], []].
 
 % Selectores
 selectNombreP([NombreP, _, _, _, _], NombreP).
@@ -86,14 +113,25 @@ selectNombreUser([User], User).
 %    Username: String (Nombre de usuario)
 %    Password: String (Contraseña del usuario)
 %    Date: Fecha (Fecha de creación)
+%    User: String
 %
 % Predicados
-%    usuario(Username, Password, Date, UOut)                                aridad = 4
-%     
+%    usuario(Username, Password, Date, UOut). Aridad = 4
+%    seleccionarUserPermiso(User, [Acc|AccT], Acc). Aridad = 3
+%
 % Clausulas
-% Constructor/Pertinencia/Selector/Modificadores
+% Constructor/Pertinencia/Selectores/Modificadores
 usuario(Username, Password, Date, User):-
-    string(Username), string(Password), esFecha(Date), User = [Username, Password, Date].
+    string(Username), string(Password), User = [Username, Password, Date].
+
+% Selector
+seleccionarUserPermiso(_, [], []):-!.
+seleccionarUserPermiso(User, [Acc|AccT], Acc):-
+    miembro(User, Acc),
+    seleccionarUserPermiso(User, AccT, _), !.
+seleccionarUserPermiso(User, [_|AccT], UsuarioConPermisos):-
+    seleccionarUserPermiso(User, AccT, UsuarioConPermisos), !.
+
 
 %---------------%
 % TDA Documento %
@@ -102,14 +140,31 @@ usuario(Username, Password, Date, User):-
 % Dominios
 %    Nombre: String (Nombre del documento)
 %    Fecha: Fecha (Fecha de creación)
+%    Doc: Documento
+%    Id: Integer
+%    ListaAccesos: Lista
+%    ListaVersiones: Lista
+%    NombreD: String
+%    AutorD: String
+%    FechaD: Fecha
+%    Contenido: String
 %
 % Predicados
-%    documento(Nombre, Fecha, Contenido, DOut)                              aridad = 4
+%    documento(Nombre, Fecha, Contenido, DOut). Aridad = 4
+%    selectNombreD(Doc, NombreD). Aridad = 2
+%    selectAutorD(Doc, AutorD). Aridad = 2
+%    selectFechaD(Doc, FechaD). Aridad = 2
+%    selectIdD(Doc, IdD). Aridad = 2
+%    selectVersiones(Doc, ListaVersiones). Aridad = 2
+%    selectAccesos(Doc, ListaAccesos). Aridad = 2 
+%    setIdDoc(Doc, Id, Doc2). Aridad = 3
+%    setAccesos(Doc, ListaAccesos, Doc2). Aridad = 3
+%    setVersion(Doc, ListaVersiones, Doc2). Aridad = 3 
 %
 % Clausulas
-% Constructor/Pertinencia/Selector
+% Constructor/Pertinencia
 documento(Nombre, Autor, Fecha, Contenido, Doc):-
-    string(Nombre), string(Autor), esFecha(Fecha), string(Contenido),
+    string(Nombre), string(Autor), string(Contenido),
     Doc = [Nombre, Autor, Fecha, "", [[Contenido, Fecha, 0]], []].
 
 % Selectores
@@ -134,20 +189,33 @@ setVersion(Doc1, ListaVersiones, Doc2):-
     Doc2 = [NombreDoc, NombreAutorDoc, FechaDoc, IdDoc, ListaVersiones, AccDoc].
 
 
-
 %-------------%
 % TDA Accesos %
 %-------------%
 %
 % Dominios
-%    Nombre: String (Nombre del documento)
-%    Fecha: Fecha (Fecha de creación)
+%    Permisos: Lista
+%    Usuarios: Permisos
+%    ListaNombre: Lista
+%    ListaAccesos: Lista
+%    Name: String
+%    User: String
+%    Acceso: String
 %
 % Predicados
-%    documento(Nombre, Fecha, Contenido, DOut)                              aridad = 4
+%    crearAccesos(Permisos, Usuarios, ListaAccesos). Aridad = 3
+%    arregloAccesos(Lista, Lista). Aridad = 2
+%    selectNombreAcceso(ListaNombre, Name). Aridad = 2
+%    verificarPermisos(ListaAccesos). Aridad = 1
+%    tienePermisoS(User). Aridad = 1
+%    tienePermisoW(User). Aridad = 1
+%    tienePermisoR(User). Aridad = 1
+%    tienePermisoW(User). Aridad = 1
+%    actualizarAccesos(ListaAccesos, Acceso, ListaAcceso). Aridad = 3
+%    recorreAccesos(ListaAccesos, Lista, ListaAccesos). Aridad = 3
 %
 % Clausulas
-% Función que aporta al constructor para cambiar formato de manera recursiva
+% Predicado que aporta al constructor para cambiar formato de manera recursiva
 arregloAccesos([], []):-!.
 arregloAccesos([H|T], [[H]|T1]):-
     arregloAccesos(T, T1).
@@ -164,61 +232,11 @@ crearAccesos(Permisos, Usuarios, ListaAccesos):-
 % Selectores
 selectNombreAcceso([Name|_], Name).
 
-%-------------------------------------------------------------------------------%
-% Otros predicados (que ayudan al funcionamiento de los predicados principales) %
-%-------------------------------------------------------------------------------%
-miembro(X, [X|_]):-!.
-    miembro(X, [_|T]):-miembro(X, T).
-
-primero([H|_], H).
-segundo([_, H|_], H).
-tercero([_, _, H|_], H).
-
-sacarNombres([], []):-!.
-sacarNombres([H|T], [H1|T2]):-
-    primero(H, H1),
-    sacarNombres(T, T2).
-
-primeroAndSegundo([Name, Pass|_], [Name, Pass]).
-sacarNombresAndContrasenas([], []):-!.
-sacarNombresAndContrasenas([H|T], [H1|T2]):-
-    primeroAndSegundo(H, H1),
-    sacarNombresAndContrasenas(T, T2).
-
+% Otros predicados de TDA Acceso
 verificarPermisos([]):-!.
 verificarPermisos([H|T]):-
     (H == "W"; H == "C"; H == "S"; H == "R"), !,
     verificarPermisos(T).
-
-verificarRegistrados([], _):-!.
-verificarRegistrados([H|T], Lista):-
-    miembro(H, Lista),
-    verificarRegistrados(T, Lista).
-
-eliminarDuplicados([], []):-!.
-eliminarDuplicados([H | T], Lista):-
-    member(H, T), !,
-    eliminarDuplicados(T, Lista).
-eliminarDuplicados([H | T], [H | Lista]):-
-    eliminarDuplicados(T, Lista).
-
-myNth0(0, [H|_], H):-!.
-myNth0(Indice, [_|T], E):-
-    Indice1 is Indice - 1,
-    myNth0(Indice1, T, E).
-
-reemplazar([_|T], 0, X, [X|T]):-!.
-reemplazar([H|T], I, X, [H|R]) :-
-    I > 0,
-    I1 is I - 1,
-    reemplazar(T, I1, X, R).
-
-seleccionarUserPermiso(_, [], []):-!.
-seleccionarUserPermiso(User, [Acc|AccT], Acc):-
-    miembro(User, Acc),
-    seleccionarUserPermiso(User, AccT, _), !.
-seleccionarUserPermiso(User, [_|AccT], UsuarioConPermisos):-
-    seleccionarUserPermiso(User, AccT, UsuarioConPermisos), !.
 
 tienePermisoS(User):-
     miembro("S", User).
@@ -243,12 +261,147 @@ recorreAccesos(ListaAccesos, [], ListaAccesos):- !.
 recorreAccesos(ListaAccesos, [H|T], ListaRadom):-
     actualizarAccesos(ListaAccesos, H, ListaSalida),
     recorreAccesos(ListaSalida, T, ListaRadom).
-    
+
+
+%-------------------------------------------------------------------------------%
+% Otros predicados (que ayudan al funcionamiento de los predicados principales) %
+%-------------------------------------------------------------------------------%
+miembro(X, [X|_]):-!.
+    miembro(X, [_|T]):-miembro(X, T).
+
+primero([H|_], H).
+segundo([_, H|_], H).
+tercero([_, _, H|_], H).
+cuarto([_, _, _, H|_], H).
+quinto([_, _, _, _, H|_], H).
+sexto([_, _, _, _, _, H|_], H).
+
+getNombresRegistrados([], []):-!.
+getNombresRegistrados([H|T], [H1|T2]):-
+    primero(H, H1),
+    getNombresRegistrados(T, T2).
+
+primeroAndSegundo([Name, Pass|_], [Name, Pass]).
+
+sacarNombresAndContrasenas([], []):-!.
+sacarNombresAndContrasenas([H|T], [H1|T2]):-
+    primeroAndSegundo(H, H1),
+    sacarNombresAndContrasenas(T, T2).
+
+verificarRegistrados([], _):-!.
+verificarRegistrados([H|T], Lista):-
+    miembro(H, Lista),
+    verificarRegistrados(T, Lista).
+
+eliminarDuplicados([], []):-!.
+eliminarDuplicados([H | T], Lista):-
+    member(H, T), !,
+    eliminarDuplicados(T, Lista).
+eliminarDuplicados([H | T], [H | Lista]):-
+    eliminarDuplicados(T, Lista).
+
+myNth0(0, [H|_], H):-!.
+myNth0(Indice, [_|T], E):-
+    Indice1 is Indice - 1,
+    myNth0(Indice1, T, E).
+
+reemplazar([_|T], 0, X, [X|T]):-!.
+reemplazar([H|T], I, X, [H|R]) :-
+    I > 0,
+    I1 is I - 1,
+    reemplazar(T, I1, X, R).
+
 crearNuevaVersion(Contenido, Fecha, IdVersion, NuevaVersion):-
     NuevaVersion = [Contenido, Fecha, IdVersion].
 
 agregarInicio(H, Lista, [H|Lista]).
 
+prepararFecha(Fecha, FechaString):-
+    seleccionarDiaF(Fecha, D),
+    seleccionarMesF(Fecha, M),
+    seleccionarAnnoF(Fecha, A),
+    string_concat(D, " de ", F1),
+    mesToString(M, M1),
+    string_concat(F1, M1, F2),
+    string_concat(F2, " de ", F3),
+    string_concat(F3, A, FechaString).
+
+prepararUsers([], []):-!.
+prepararUsers([User|SigUsers], [UserString|SigUserString]):-
+    primero(User, NombreU),
+    segundo(User, ContrasennaU),
+    tercero(User, FechaU),
+    prepararFecha(FechaU, FechaString),
+    string_concat("Nombre: ", NombreU, S1),
+    string_concat(S1, " Contrasena: ", S2),
+    string_concat(S2, ContrasennaU, S3),
+    string_concat(S3, " Fecha de creacion: ", S4),
+    string_concat(S4, FechaString, UserString),
+    prepararUsers(SigUsers, SigUserString).
+
+prepararAcceso([NombreUser|Accesos], AccesosString):-
+    atomics_to_string(Accesos, ", ", AccesosEnString),
+    ListaString = ["\n      Usuario: ", NombreUser, "\n      Permisos: ", AccesosEnString],
+    atomics_to_string(ListaString, AccesosString).
+    
+prepararAccesos(ListaAccesos, ListaAccesosString):-
+    maplist(prepararAcceso(), ListaAccesos, ListaAccesosString).
+
+prepararVersion(Version, VersionString):-
+    primero(Version, ContenidoV),
+    segundo(Version, FechaV),
+    tercero(Version, IdV),
+    prepararFecha(FechaV, FechaEnString),
+    ListaString = ["\n      Version: ", IdV, "\n      Contenido: ", ContenidoV, "\n      Fecha de modificacion: ", FechaEnString],
+    atomics_to_string(ListaString, VersionString).
+
+prepararVersiones(Versiones, VersionesEnString):-
+    maplist(prepararVersion(), Versiones, VersionesEnString).
+
+prepararDoc(Doc, DocString):-
+    primero(Doc, TituloD),
+    segundo(Doc, AutorD),
+    tercero(Doc, FechaD),
+    cuarto(Doc, IdD),
+    quinto(Doc, VersionesD),
+    sexto(Doc, AccesosD),
+    % Preparación 
+    prepararFecha(FechaD, FechaEnString),
+    prepararAccesos(AccesosD, AccesosString),
+    atomics_to_string(AccesosString, AccesosEnString),
+    prepararVersiones(VersionesD, VersionesString),
+    atomics_to_string(VersionesString, VersionesEnString),
+    % Concatenación de string
+    ListaString = ["\n   Documento Numero ", IdD, "\n   Nombre: ", TituloD, "\n   Autor: ", AutorD, "\n   Fecha de creacion: ", FechaEnString,
+    "\n   Accesos:", AccesosEnString, "\n   Versiones (la ultima es la version activa):", VersionesEnString],
+    atomics_to_string(ListaString, DocString).
+
+prepararDocs(ListaDocs, ListaDocsString):-
+    maplist(prepararDoc(), ListaDocs, ListaDocsString).
+
+seleccionarDocPorAutor(_, [], []):-!.
+seleccionarDocPorAutor(Autor, [Doc|SigDocs], [Doc|DocsSalidas]):-
+    miembro(Autor, Doc),
+    seleccionarDocPorAutor(Autor, SigDocs, DocsSalidas), !.
+seleccionarDocPorAutor(Autor, [_|SigDocs], Salida):-
+    seleccionarDocPorAutor(Autor, SigDocs, Salida), !.
+
+seleccionarAccesosEnDocPorUser(_, [], []):-!.
+seleccionarAccesosEnDocPorUser(User, [Doc|SigDocs], [Doc|DocsSalidas]):-
+    selectAccesos(Doc, ListaAccesos),
+    seleccionarUserPermiso(User, ListaAccesos, AccesoUser),
+    miembro(User, AccesoUser),
+    seleccionarAccesosEnDocPorUser(User, SigDocs, DocsSalidas), !.
+seleccionarAccesosEnDocPorUser(User, [_|SigDocs], Salida):-
+    seleccionarAccesosEnDocPorUser(User, SigDocs, Salida), !.
+
+seleccionarUserRegistrado(_, [], []):-!.
+seleccionarUserRegistrado(User, [Registrado|SigRegistrados], [Registrado|RegistradoSalidas]):-
+    miembro(User, Registrado),
+    seleccionarUserRegistrado(User, SigRegistrados, RegistradoSalidas), !.
+seleccionarUserRegistrado(User, [_|SigRegistrados], RegTemp):-
+    seleccionarUserRegistrado(User, SigRegistrados, RegTemp).
+    
 %---------------------------------------------------%
 % Código Principal Plataforma que emula Google Docs %
 %---------------------------------------------------%
@@ -281,7 +434,7 @@ paradigmaDocsRegister(PD1, Fecha, Username, Password, PD2):-
     selectUserActivoP(PD1, UserActivo),
     selectDocumentosP(PD1, ListaDocs),
     usuario(Username, Password, Fecha, User1),
-    sacarNombres(ListaReg, Nombres),
+    getNombresRegistrados(ListaReg, Nombres),
     \+miembro(Username, Nombres),
     append(ListaReg, [User1], ListaRegistroNueva),
     PD2 = [NombreP, FechaP, ListaRegistroNueva, UserActivo, ListaDocs].
@@ -359,7 +512,7 @@ paradigmaDocsShare(PD1, DocumentId, ListaPermisos, ListaUsernamesPermitidos, PD2
     selectNombreP(PD1, NombreP),
     selectFechaP(PD1, FechaP),
     selectListaRegP(PD1, ListaReg),
-    sacarNombres(ListaReg, NombresRegistrados),
+    getNombresRegistrados(ListaReg, NombresRegistrados),
     % Verificar que los users nuevos estén registrados en la plataforma
     verificarRegistrados(ListaUsernamesPermitidos, NombresRegistrados),
     % Select user logeado y verificar que no sea vacío
@@ -396,7 +549,6 @@ Para que el usuario pueda hacer esta acción, debe tener permisos de escritura "
 */
 paradigmaDocsAdd(PD1, DocumentId, Fecha, ContenidoTexto, PD2):-
     % Verificaciones previas
-    esFecha(Fecha),
     string(ContenidoTexto),
     integer(DocumentId),
     % Getting info paradigmadocs
@@ -473,9 +625,66 @@ paradigmaDocsRestoreVersion(PD1, DocumentId, IdVersion, PD2):-
     PD2 = [NombreP, FechaP, ListaReg, [], ListaDocsNueva].
 
 
-
-
-
+%-----------------------%
+% paradigmaDocsTostring %
+%-----------------------%
+/*
+Predicado que genera una String de la plataforma paradigmaDocs.
+Cuando se le pasa un paradigmaDocs que no tiene un usuario activo, se genera un string con todo el contenido almacenado en la plataforma y
+caso contrario, se genera una string con toda la información relativa al usuario logeado, tal como los documentos los cuales es dueño,
+los que tiene acceso y también, la información de su cuenta que esté almacenada en la plataforma.
+El propósito de este predicado es generar una cadena de texto que pueda ser mostrada por consola a través de predicados como
+display o write posteriormente.
+*/
+paradigmaDocsToString([NombreP, FechaP, ListaReg, [], ListaDocs], StringParadigmaDocs):-
+    % CASO 1 NO HAY USER LOGEADO
+    % Preparación primera parte (Info y users registrados) de paradigmaDocs to String
+    prepararFecha(FechaP, FechaEnString),
+    prepararUsers(ListaReg, RegistradosEnLista),
+    atomics_to_string(RegistradosEnLista, "\n", RegistradosEnString),
+    string_concat("#---------------#\n# PARADIGMADOCS #\n#---------------#\n\nNombre de la plataforma: ", NombreP, S1),
+    string_concat(S1, "\nFecha de creacion: ", S2),
+    string_concat(S2, FechaEnString, S3),
+    string_concat(S3, "\nLos usuarios registrados son: \n", S4),
+    string_concat(S4, RegistradosEnString, S5),
+    % Preparación segunda parte (Docs) de paradigmaDocs to string
+    prepararDocs(ListaDocs, ListaDocsString),
+    atomics_to_string(ListaDocsString, ListaDocsEnString),
+    string_concat(S5, "\nLos documentos son: ", S6),
+    string_concat(S6, ListaDocsEnString, StringParadigmaDocs), !.
+paradigmaDocsToString(PD1, StringParadigmaDocs):-
+    % CASO 2 SI HAY USUARIO LOGEADO
+    selectNombreP(PD1, NombreP),
+    selectFechaP(PD1, FechaP),
+    selectListaRegP(PD1, ListaReg),
+    selectUserActivoP(PD1, UserActivo),
+    selectNombreUser(UserActivo, UserLogeado),
+    selectDocumentosP(PD1, ListaDocs),
+    seleccionarUserRegistrado(UserLogeado, ListaReg, ListaInfoUser),
+    primero(ListaInfoUser, InfoUser),
+    segundo(InfoUser, Contrasenna),
+    tercero(InfoUser, FechaU),
+    prepararFecha(FechaU, FechaUserEnString),
+    prepararFecha(FechaP, FechaEnString),
+    string_concat("#---------------#\n# PARADIGMADOCS #\n#---------------#\n\nNombre de la plataforma: ", NombreP, S1),
+    string_concat(S1, "\nFecha de creacion: ", S2),
+    string_concat(S2, FechaEnString, S3),
+    string_concat(S3, "\nUsuario activo: ", S4),
+    string_concat(S4, UserLogeado, S5),
+    string_concat(S5, "\nContrasena: ", S6),
+    string_concat(S6, Contrasenna, S7),
+    string_concat(S7, "\nFecha de creacion de la cuenta: ", S8),
+    string_concat(S8, FechaUserEnString, S9),
+    seleccionarDocPorAutor(UserLogeado, ListaDocs, ListaDocsUser),
+    prepararDocs(ListaDocsUser, ListaDocsString),
+    atomics_to_string(ListaDocsString, ListaDocsEnString),
+    string_concat(S9, "\nLos documentos en los que el autor tiene autoria son:", S10),
+    string_concat(S10, ListaDocsEnString, S11),
+    seleccionarAccesosEnDocPorUser(UserLogeado, ListaDocs, DocsConAccesos),
+    prepararDocs(DocsConAccesos, ListaDocsConAccesos),
+    atomics_to_string(ListaDocsConAccesos, DocsConAccesosString),
+    string_concat(S11, "\nLos documentos que el usuario tiene acceso son:", S12),
+    string_concat(S12, DocsConAccesosString, StringParadigmaDocs), !.
 
 
 %------------------------------%
@@ -523,6 +732,8 @@ paradigmaDocsRestoreVersion(PD1, DocumentId, IdVersion, PD2):-
 %       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C", "S"], ["vflores", "alopez"], PD10).
 %   Se logea "alopez" quien no es dueño del documento 0, pero tiene el permiso de compartir, por ende, puede actualizar o agregar permisos
 %       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C", "S"], ["vflores", "alopez"], PD10), paradigmaDocsLogin(PD10, "alopez", "asdfg", PD11), paradigmaDocsShare(PD11, 0, ["R", "W"], ["vflores"], PD12).
+%   Se logea "crios" y comparte a 2 personas más pero en el documento 1 que es de su autoría
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C"], ["vflores", "alopez"], PD10), paradigmaDocsLogin(PD10, "alopez", "asdfg", PD11), paradigmaDocsAdd(PD11, 0, D1, " Más contenido 1", PD12), paradigmaDocsLogin(PD12, "crios", "qwert", PD13), paradigmaDocsShare(PD13, 1, ["W", "S", "R"], ["alopez", "crios"], PD14).  
 %
 % paradigmaDocsAdd
 %   Se agrega "Más contenido 1" al documento 0. El usuario logeado es alguien que tiene permisos de escritura en este Doc
@@ -541,10 +752,10 @@ paradigmaDocsRestoreVersion(PD1, DocumentId, IdVersion, PD2):-
 %       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C"], ["vflores", "alopez"], PD10), paradigmaDocsLogin(PD10, "alopez", "asdfg", PD11), paradigmaDocsAdd(PD11, 0, D1, " Más contenido 1", PD12), paradigmaDocsLogin(PD12, "vflores", "hola123", PD13), paradigmaDocsRestoreVersion(PD13, 0, 9, PD14). 
 %
 % paradigmaDocsToString
-%   
-%
-%
-%
-%
-%
+%   Se muestra el contenido de toda la plataforma al no existir un usuario con sesión activa
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C"], ["vflores", "alopez"], PD10), paradigmaDocsLogin(PD10, "alopez", "asdfg", PD11), paradigmaDocsAdd(PD11, 0, D1, " Más contenido 1", PD12), paradigmaDocsToString(PD12, PDFINAL), write(PDFINAL).
+%   Se muestra el contenido del usuario logeado "vFlores" de manera exitosa
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C"], ["vflores", "alopez"], PD10), paradigmaDocsLogin(PD10, "alopez", "asdfg", PD11), paradigmaDocsAdd(PD11, 0, D1, " Más contenido 1", PD12), paradigmaDocsLogin(PD12, "vflores", "hola123", PD13), paradigmaDocsToString(PD13, PDFINAL), write(PDFINAL).
+%   Se muestra el contenido del usuario logeado "crios" de manera exitosa
+%       fecha(20, 12, 2015, D1), fecha(1, 12, 2021, D2), fecha(3, 12, 2021, D3), paradigmaDocs("google docs", D1, PD1), paradigmaDocsRegister(PD1, D2, "vflores", "hola123", PD2), paradigmaDocsRegister(PD2, D2, "crios", "qwert", PD3), paradigmaDocsRegister(PD3, D3, "alopez", "asdfg", PD4), paradigmaDocsLogin(PD4, "vflores", "hola123", PD5), paradigmaDocsCreate(PD5, D1, "Primer Título", "Contenido N°1", PD6), paradigmaDocsLogin(PD6, "crios", "qwert", PD7), paradigmaDocsCreate(PD7, D1, "Segundo Título", "Contenido N°2", PD8), paradigmaDocsLogin(PD8, "vflores", "hola123", PD9), paradigmaDocsShare(PD9, 0, ["W", "R", "C"], ["vflores", "alopez"], PD10), paradigmaDocsLogin(PD10, "alopez", "asdfg", PD11), paradigmaDocsAdd(PD11, 0, D1, " Más contenido 1", PD12), paradigmaDocsLogin(PD12, "crios", "qwert", PD13), paradigmaDocsShare(PD13, 1, ["W", "S", "R"], ["alopez", "crios"], PD14), paradigmaDocsLogin(PD14, "crios", "qwert", PD15), paradigmaDocsToString(PD15, PDFINAL), write(PDFINAL).
 %
