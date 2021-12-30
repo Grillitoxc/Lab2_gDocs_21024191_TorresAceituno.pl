@@ -1,0 +1,41 @@
+1. TDA’s
+Prerrequisitos para evaluación: Ninguno.
+Requisitos de implementación: Se cumple todo lo pedido.
+Funciones mínimas requeridas: Se cumple con las funciones.
+Evaluación: 1.
+Cada TDA está correctamente documentado y detallado. Estos cumplen con solamente lo necesario para abordar el programa principal y no se crearon predicados adicionales sin uso.
+2. Register
+Prerrequisitos para evaluación: Cumplido.
+Requisitos de implementación: Cumplido.
+Evaluación: 1.
+Predicado muy fácil de abordar, no tuvo fallos mayores y su complejidad radicaba solo en algo externo que era la implementación de member con recursión que en un principio era algo no muy familiar. Este predicado no tuvo fallos.
+3. Login
+Prerrequisitos para evaluación: Cumplido.
+Requisitos de implementación: Cumplidos todos.
+Evaluación: 1.
+Predicado que no causó problemas más allá de la verificación de que el usuario logeado estuviese correctamente registrado. Tomó aproximadamente 15 intentos para lograr esa parte y lo demás fue instantáneo.
+4. Create
+Prerrequisitos para evaluación: Cumplido.
+Requisitos de implementación: Cumplidos todos.
+Evaluación: 1.
+Predicado que hace uso de gran parte del TDA Documento, por lo que al ser un TDA, su dificultad es bastante baja. Sólo se intentó 5 veces hasta que el predicado funcionara correctamente.
+5. Share
+Prerrequisitos para evaluación: Cumplido.
+Requisitos de implementación: Cumplidos todos.
+Evaluación: 1.
+Predicado que fácilmente llegó a las 100 pruebas por su complejidad al actualizar accesos, crear un TDA Acceso, manejar todas sus restricciones, etc. Se invirtió gran parte del tiempo en el desarrollo de este predicado pero terminó por funcionar a la perfección con todos sus requerimientos de implementación.
+6. Add
+Prerrequisitos para evaluación: Cumplido.
+Requisitos de implementación: Cumplidos todos.
+Evaluación: 1.
+Predicado simple que tomó 20 intentos en su construcción, ya que gran parte de lo que se pedía para implementarse ya estaba hecho con anterioridad.
+7. RestoreVersion
+Prerrequisitos para evaluación: Cumplido.
+Requisitos de implementación: Cumplidos todos.
+Evaluación: 1.
+Predicado muy similar a Add, por lo que fue fácil implementarlo. Costó aproximadamente 20 intentos y se fallaba principalmente por errores de sintaxis.
+8. ParadigmaDocsToString
+Prerrequisitos para evaluación: Cumplido.
+Requisitos de implementación: Cumplidos todos.
+Evaluación: 1.
+Predicado bastante largo que demoró un par de días en realizarse ya que preparar todos los datos en una string fue un trabajo arduo. Para esto, se probó muchísimas veces que todo el formato estuviese correcto. Esto tomó alrededor de 100 pruebas.
